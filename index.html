@@ -157,7 +157,7 @@
       </div>
       <div class="sheet" id="sheet-party" role="dialog" aria-modal="true" aria-labelledby="party-title" hidden>
         <div id="party-art" class="sheet-art"></div>
-        <h2 id="party-title">存滿一百元囉！</h2>
+        <h2 id="party-title">存滿一百塊囉！</h2>
         <p>豬豬寶的肚子滿滿的，星星披風解鎖了！</p>
         <button type="button" id="btn-party-ok" class="btn btn-primary">太好囉</button>
       </div>
@@ -185,6 +185,12 @@
           <span class="set-label">音量</span>
           <input id="volume" type="range" min="0" max="100" value="85">
         </label>
+        <div class="set-line voice-line">
+          <span class="set-label" id="voice-label">說話聲音</span>
+          <select id="voice-pick" aria-labelledby="voice-label"></select>
+          <button type="button" id="voice-preview" class="btn btn-soft">聽看看</button>
+        </div>
+        <p id="voice-note" class="voice-note"></p>
         <div class="help">
           <p class="set-label">怎麼玩</p>
           <ol>

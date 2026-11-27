@@ -1,5 +1,5 @@
-const CACHE = "piggy-coin-park-v1";
-const ASSETS = [
+const CACHE = "piggy-coin-park-v2";
+const CORE = [
   "./",
   "./index.html",
   "./manifest.json",
@@ -8,8 +8,11 @@ const ASSETS = [
   "./js/game.js",
   "./js/data.js",
   "./js/audio.js",
+  "./js/narration.js",
+  "./js/voices.js",
   "./js/storage.js",
   "./js/art.js",
+  "./audio/manifest.json",
   "./icons/favicon-32.png",
   "./icons/apple-touch-icon.png",
   "./icons/icon-192.png",
@@ -17,8 +20,23 @@ const ASSETS = [
   "./icons/icon-maskable-512.png",
 ];
 
+async function addChunked(cache, urls) {
+  const size = 24;
+  for (let index = 0; index < urls.length; index += size) {
+    await cache.addAll(urls.slice(index, index + size));
+  }
+}
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await addChunked(cache, CORE);
+    const manifestUrl = new URL("./audio/manifest.json", self.location);
+    const manifest = await (await fetch(manifestUrl)).json();
+    const clips = Object.values(manifest.clips || {}).map((path) => new URL(path, manifestUrl).href);
+    await addChunked(cache, clips);
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener("activate", (event) => {

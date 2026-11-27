@@ -24,6 +24,7 @@ function defaults() {
       reducedMotion: reduced,
       muted: false,
       volume: 0.85,
+      voice: "bundled",
     },
     seenHand: false,
   };
