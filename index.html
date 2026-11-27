@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#ff8fb3">
+  <meta name="description" content="小豬存錢樂園：給幼兒園大班的新台幣 1 元、5 元、10 元加法遊戲。">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="小豬存錢">
+  <title>小豬存錢樂園</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./icons/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+  <div id="app">
+    <div class="world" aria-hidden="true">
+      <div class="sun"></div>
+      <div class="cloud c1"></div>
+      <div class="cloud c2"></div>
+      <div class="cloud c3"></div>
+      <div class="hills"></div>
+    </div>
+
+    <header id="topbar">
+      <button type="button" id="btn-home" class="icon-btn" aria-label="回首頁">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#ff8fb3" d="M8 22 L24 8 L40 22 V40 H30 V28 H18 V40 H8 Z"/><path fill="#fff" d="M20 40 V30 H28 V40 Z"/></svg>
+        <span>首頁</span>
+      </button>
+      <h1 id="title">小豬存錢樂園</h1>
+      <div id="starbar" aria-label="星星"></div>
+      <button type="button" id="btn-sound" class="icon-btn" aria-label="聲音" aria-pressed="false">
+        <svg id="ico-sound-on" viewBox="0 0 48 48" aria-hidden="true"><path fill="#5c3040" d="M8 18h8l10-8v28l-10-8H8z"/><path fill="none" stroke="#5c3040" stroke-width="3" stroke-linecap="round" d="M32 16c4 3 6 7 6 8s-2 5-6 8"/><path fill="none" stroke="#5c3040" stroke-width="3" stroke-linecap="round" d="M36 12c6 5 8 10 8 12s-2 7-8 12"/></svg>
+        <svg id="ico-sound-off" viewBox="0 0 48 48" aria-hidden="true" hidden><path fill="#5c3040" d="M8 18h8l10-8v28l-10-8H8z"/><path stroke="#e36b90" stroke-width="3" stroke-linecap="round" d="M32 18l10 12M42 18L32 30"/></svg>
+        <span>聲音</span>
+      </button>
+      <button type="button" id="btn-settings" class="icon-btn" aria-label="設定">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="6" fill="none" stroke="#5c3040" stroke-width="3"/><path fill="#5c3040" d="M21 6h6l1 6 5 2 5-4 4 4-4 5 2 5 6 1v6l-6 1-2 5 4 5-4 4-5-4-5 2-1 6h-6l-1-6-5-2-5 4-4-4 4-5-2-5-6-1v-6l6-1 2-5-4-5 4-4 5 4 5-2z"/></svg>
+        <span>設定</span>
+      </button>
+    </header>
+
+    <div id="screens">
+      <section id="home" class="screen">
+        <div class="home-main">
+          <div class="hero piggy-slot" data-mood="idle">
+            <div class="bubble show" id="home-bubble">點一間商店，去付錢吧！</div>
+            <div data-piggy data-where="home"></div>
+            <div class="hero-name">豬豬寶</div>
+          </div>
+          <div class="street" id="street"></div>
+        </div>
+        <div class="modes">
+          <button type="button" id="btn-free" class="mode-btn mode-free">
+            <span class="mode-label">自由玩</span>
+            <span class="mode-sub">拖拖錢幣、合成、換錢</span>
+          </button>
+          <button type="button" id="btn-parent" class="mode-btn mode-parent">
+            <span class="mode-label">親子出題</span>
+            <span class="mode-sub">爸爸媽媽出價錢</span>
+          </button>
+          <button type="button" id="btn-bank" class="mode-btn mode-bank">
+            <span class="mode-label">存錢筒</span>
+            <span class="mode-sub">看看豬豬寶的肚子</span>
+          </button>
+        </div>
+      </section>
+
+      <section id="play" class="screen">
+        <div class="play-main">
+          <div id="shop" class="scene theme-fruit"></div>
+          <div class="stage">
+            <div id="goods"></div>
+            <div id="tray" class="tray">
+              <p id="tray-empty">把錢幣放這裡</p>
+              <div class="zone zone-tens" id="zone-tens">
+                <div class="zone-label">十元區</div>
+                <div class="zone-coins" id="zone-tens-coins"></div>
+              </div>
+              <div class="zone zone-ones" id="zone-ones">
+                <div class="zone-label" id="zone-ones-label">付款盤</div>
+                <div class="zone-coins" id="zone-ones-coins"></div>
+              </div>
+            </div>
+            <div class="totals" id="totals">
+              <div class="total-card now">
+                <span id="sum-k">現在</span>
+                <strong id="sum">0</strong>
+                <em>元</em>
+              </div>
+              <div class="total-card goal" id="goal-card">
+                <span>要付</span>
+                <strong id="goal">0</strong>
+                <em>元</em>
+              </div>
+            </div>
+          </div>
+          <div class="piggy-panel piggy-slot" data-mood="idle">
+            <div class="bubble" id="bubble">嗨，我是豬豬寶！</div>
+            <div data-piggy data-where="play"></div>
+          </div>
+        </div>
+        <div class="dock">
+          <div id="spawners"></div>
+          <div class="dock-actions">
+            <button type="button" id="btn-merge-5" class="btn-merge" hidden>合成 5 元</button>
+            <button type="button" id="btn-merge-10" class="btn-merge" hidden>合成 10 元</button>
+            <button type="button" id="btn-exchange" class="btn-exchange" hidden aria-pressed="false">換錢機</button>
+            <button type="button" id="btn-reset-free" class="btn btn-soft" hidden>清空</button>
+          </div>
+        </div>
+        <button type="button" id="btn-next" class="btn-next" hidden>下一題</button>
+        <div class="hand-hint" id="hand-hint" hidden></div>
+      </section>
+
+      <section id="parent" class="screen">
+        <div class="parent-layout">
+          <div class="parent-items">
+            <h2>選商品</h2>
+            <p id="parent-hint" class="parent-note">請家長選 1～2 樣商品，再輸入總價。</p>
+            <div id="item-grid"></div>
+            <div id="picked" class="picked"></div>
+          </div>
+          <div class="parent-price">
+            <div class="price-entry" aria-live="polite"><span id="price-entry">0</span><small>元</small></div>
+            <div id="keypad" class="keypad"></div>
+            <button type="button" id="btn-parent-start" class="btn btn-primary is-disabled" aria-disabled="true">開始付錢</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="bank" class="screen">
+        <div class="bank-layout">
+          <div class="bank-hero piggy-slot" data-mood="idle">
+            <div class="bank-total"><strong id="bank-total">0</strong><span>元</span></div>
+            <div class="bank-meter" aria-hidden="true"><div id="bank-fill"></div></div>
+            <div class="bank-meter-label" id="bank-label">再存一點就一百元囉</div>
+            <div data-piggy data-where="bank"></div>
+          </div>
+          <div class="wardrobe">
+            <h2>豬豬寶的裝飾</h2>
+            <div id="acc-grid"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="modal" aria-hidden="true">
+      <div class="sheet" id="sheet-clear" role="dialog" aria-modal="true" aria-labelledby="clear-title" hidden>
+        <div id="clear-art" class="sheet-art"></div>
+        <h2 id="clear-title">完成囉！</h2>
+        <p id="clear-msg"></p>
+        <div id="clear-actions" class="sheet-actions"></div>
+      </div>
+      <div class="sheet" id="sheet-party" role="dialog" aria-modal="true" aria-labelledby="party-title" hidden>
+        <div id="party-art" class="sheet-art"></div>
+        <h2 id="party-title">存滿一百元囉！</h2>
+        <p>豬豬寶的肚子滿滿的，星星披風解鎖了！</p>
+        <button type="button" id="btn-party-ok" class="btn btn-primary">太好囉</button>
+      </div>
+    </div>
+
+    <div id="settings" aria-hidden="true">
+      <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <h2 id="settings-title">設定</h2>
+        <p class="set-label">硬幣樣式</p>
+        <div class="style-row">
+          <button type="button" class="style-pick" data-style="cartoon">
+            <span class="swatch swatch-cartoon"><b>1</b></span>
+            <span>卡通可愛版</span>
+          </button>
+          <button type="button" class="style-pick" data-style="realistic">
+            <span class="swatch swatch-real"><b>10</b></span>
+            <span>寫實風格版</span>
+          </button>
+        </div>
+        <div class="set-line">
+          <span class="set-label">動感</span>
+          <button type="button" id="motion-toggle" class="switch" aria-pressed="true"><span id="motion-label">動畫開</span></button>
+        </div>
+        <label class="set-line" for="volume">
+          <span class="set-label">音量</span>
+          <input id="volume" type="range" min="0" max="100" value="85">
+        </label>
+        <div class="help">
+          <p class="set-label">怎麼玩</p>
+          <ol>
+            <li>點一點或拖一拖錢幣，放到付款盤。</li>
+            <li>金額剛剛好，客人會說謝謝，並得到星星。</li>
+            <li>五個 1 元可以合成 5 元，兩個 5 元可以合成 10 元。</li>
+            <li>付錢超過時，錢幣會跳回原來的地方。</li>
+          </ol>
+        </div>
+        <button type="button" id="btn-settings-close" class="btn btn-primary">關閉</button>
+      </div>
+    </div>
+
+    <div id="fx" aria-hidden="true"></div>
+    <div id="drag-layer"></div>
+    <div id="rotate-hint">
+      <div class="rotate-card">
+        <div class="rotate-icon" aria-hidden="true"></div>
+        <p>把平板橫過來，一起玩吧！</p>
+      </div>
+    </div>
+  </div>
+  <noscript><p>小豬存錢樂園需要開啟 JavaScript 才能玩。</p></noscript>
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
