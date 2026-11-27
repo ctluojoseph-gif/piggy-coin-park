@@ -5,13 +5,18 @@ import {
   ITEMS,
   LEVELS,
   PARENT_ITEM_IDS,
-  PRAISE,
   createRng,
   makeQuestions,
-  questionLine,
   validQuestion,
-  yuanSpeak,
 } from "./data.js";
+import {
+  PRAISE_LINES,
+  fixedPlan,
+  nowPlan,
+  questionPlan,
+  successPlan,
+  welcomeQuestionPlan,
+} from "./narration.js";
 import { accessorySVG, animalSVG, handSVG, itemSVG, piggySVG } from "./art.js";
 import { audio } from "./audio.js";
 import { bellyCoins, store } from "./storage.js";
@@ -129,6 +134,12 @@ function showBubble(text) {
   bubble.classList.remove("pop");
   void bubble.offsetWidth;
   bubble.classList.add("pop");
+}
+
+function narrate(plan) {
+  if (!plan) return;
+  showBubble(plan.text);
+  audio.speak(plan.speakText || plan.text, plan.parts);
 }
 
 function renderStarbar() {
@@ -335,8 +346,7 @@ function armHint() {
     el?.classList.add("is-hint");
     if (!state.hintSpoken) {
       state.hintSpoken = true;
-      showBubble("試試看發亮的錢幣");
-      audio.say("試試看這個");
+      narrate(fixedPlan("hint"));
     }
   }, 10000);
 }
@@ -356,12 +366,10 @@ function renderQuestion() {
   configureTray();
   updateHud();
   updateMerge();
-  const line = questionLine(q);
-  showBubble(line);
-  const spoken = state.qIndex === 0 && state.mode === "level"
-    ? `${LEVELS[state.levelId].welcome}${line}`
-    : line;
-  audio.say(spoken, { rate: state.levelId === 1 ? 0.9 : 0.98 });
+  const plan = state.qIndex === 0 && state.mode === "level"
+    ? welcomeQuestionPlan(state.levelId, q)
+    : questionPlan(q);
+  narrate(plan);
   const showHand = state.mode === "level" && state.levelId === 1 && state.qIndex === 0 && !store.data.seenHand;
   $("#hand-hint").hidden = !showHand;
   renderStarbar();
@@ -404,8 +412,7 @@ function openPlay(config) {
     renderScene("chick");
     updateHud();
     updateMerge();
-    showBubble("把錢幣放進來玩吧！");
-    audio.say("把錢幣放進來玩吧");
+    narrate(fixedPlan("free-start"));
     $("#hand-hint").hidden = true;
     $("#btn-next").hidden = true;
     setPhase("play");
@@ -604,10 +611,9 @@ function discardDrag(drag) {
   setTimeout(remove, animMs(360));
 }
 
-function overpay(drag, message) {
+function overpay(drag, plan) {
   audio.boing();
-  showBubble(message);
-  audio.say(message);
+  narrate(plan);
   mood("oops");
   drag.el.classList.add("is-shake");
   drag.el.animate([
@@ -634,7 +640,7 @@ function payCoin(el, value, pointer) {
   const next = sum() + value;
   const limit = hasGoal() ? goal() : 100;
   if (next > limit) {
-    overpay({ el, value }, hasGoal() ? "太多囉～拿回來一個" : "最多到一百元喔");
+    overpay({ el, value }, hasGoal() ? fixedPlan("too-much") : fixedPlan("cap"));
     armHint();
     return;
   }
@@ -648,13 +654,9 @@ function payCoin(el, value, pointer) {
   if (hasGoal() && sum() === goal()) {
     beginSuccess();
   } else {
-    let line = `${yuanSpeak(sum())}！`;
-    if (value === 10 && state.guided && !state.toldZone) {
-      state.toldZone = true;
-      line = `${yuanSpeak(sum())}！十元放在十元區喔`;
-    }
-    showBubble(line);
-    audio.say(line, { rate: state.levelId === 1 ? 0.86 : 1 });
+    const zone = value === 10 && state.guided && !state.toldZone;
+    if (zone) state.toldZone = true;
+    narrate(nowPlan(sum(), { zone }));
     updateMerge();
     armHint();
   }
@@ -668,15 +670,13 @@ function returnCoin(drag) {
   updateHud();
   updateMerge();
   if (state.screen === "play" && !state.busy) {
-    const line = `${yuanSpeak(sum())}！`;
-    showBubble(line);
-    audio.say(line);
+    narrate(nowPlan(sum()));
   }
   armHint();
 }
 
 function suggestSplitMessage(value) {
-  return value === 10 ? "換成兩個五元囉！" : "換成五個一元囉！";
+  return fixedPlan(value === 10 ? "split-10" : "split-5");
 }
 
 function splitFromDrag(drag) {
@@ -699,9 +699,7 @@ function splitFromDrag(drag) {
     settleIntoTray(el, value, pointer);
   });
   audio.whoosh();
-  const line = suggestSplitMessage(drag.value);
-  showBubble(line);
-  audio.say(line);
+  narrate(suggestSplitMessage(drag.value));
   updateHud();
   updateMerge();
   armHint();
@@ -736,9 +734,7 @@ function mergeCoins(from, to) {
     state.tray.push({ id, value: to });
     settleIntoTray(el, to, state.free ? { x: cx + 46, y: cy + 46 } : null);
     audio.coin(to);
-    const line = to === 5 ? "變成五元囉！" : "變成十元囉！";
-    showBubble(line);
-    audio.say(line);
+    narrate(fixedPlan(to === 5 ? "merge-5" : "merge-10"));
     state.merging = false;
     updateHud();
     updateMerge();
@@ -827,8 +823,7 @@ function flyCoinsToPiggy() {
 function beginSuccess() {
   state.busy = true;
   updateMerge();
-  const praise = PRAISE[Math.floor(Math.random() * PRAISE.length)];
-  let speech = `謝謝光臨！${praise}`;
+  const praiseIndex = Math.floor(Math.random() * PRAISE_LINES.length);
   let unlocked = [];
   if (state.mode === "level") {
     state.sessionStars += 1;
@@ -837,9 +832,7 @@ function beginSuccess() {
     if (star) star.classList.add("on");
     flyStar(star);
   }
-  if (unlocked.length) {
-    speech += `解鎖了${unlocked.map((acc) => acc.name).join("和")}！`;
-  }
+  const plan = successPlan(praiseIndex, unlocked);
   const crossed = store.addCoins(state.tray.map((coin) => coin.value));
   state.pendingParty = crossed && !store.data.piggyCelebrated;
   refreshPiggies();
@@ -852,8 +845,7 @@ function beginSuccess() {
     custBubble.hidden = false;
     custBubble.textContent = "謝謝光臨！";
   }
-  showBubble(speech);
-  audio.say(speech, { rate: 0.95 });
+  narrate(plan);
   flyCoinsToPiggy();
   $("#btn-next").hidden = false;
   $("#btn-next").textContent = nextLabel();
@@ -951,7 +943,7 @@ function openParty(done) {
   });
   openModal("sheet-party");
   setPhase("party");
-  audio.say("存滿一百元囉！好厲害！");
+  narrate(fixedPlan("party"));
 }
 
 function onPointerDown(event) {
@@ -1038,8 +1030,7 @@ function resetFree() {
   clearTrayDom();
   updateHud();
   updateMerge();
-  showBubble("清空囉，再玩一次吧！");
-  audio.say("再玩一次吧");
+  narrate(fixedPlan("reset"));
 }
 
 function applySettings() {
@@ -1060,6 +1051,37 @@ function applySettings() {
   $("#motion-label").textContent = settings.reducedMotion ? "動畫關" : "動畫開";
   const slider = $("#volume");
   slider.value = String(Math.round(settings.volume * 100));
+  audio.setVoiceChoice(settings.voice || "bundled");
+  renderVoiceList();
+}
+
+function renderVoiceList() {
+  const select = $("#voice-pick");
+  if (!select) return;
+  const voices = audio.taiwanVoices();
+  const saved = store.data.settings.voice || "bundled";
+  const previous = select.value;
+  select.replaceChildren();
+  select.add(new Option("豬豬寶（台灣腔）", "bundled"));
+  voices.forEach((voice) => {
+    select.add(new Option(voice.name || "台灣語音", voice.voiceURI));
+  });
+  const valid = saved === "bundled" || voices.some((voice) => voice.voiceURI === saved);
+  select.value = valid ? saved : "bundled";
+  if (!valid) {
+    store.data.settings.voice = "bundled";
+    store.save();
+  }
+  audio.setVoiceChoice(select.value);
+  const note = $("#voice-note");
+  if (note) {
+    if (!voices.length) note.textContent = "這台裝置沒有台灣語音，先用豬豬寶的錄音喔。";
+    else if (select.value === "bundled") note.textContent = "豬豬寶的聲音是台灣錄音，每台裝置都一樣。也可以改用這台裝置自己的台灣語音。";
+    else note.textContent = "會用這台裝置的台灣語音念完整句。若這個聲音不見了，就改回豬豬寶的錄音。";
+  }
+  if (previous && previous !== select.value && document.activeElement === select) {
+    select.value = valid ? saved : "bundled";
+  }
 }
 
 function bindPad() {
@@ -1114,9 +1136,7 @@ function bind() {
     audio.unlock();
     state.exchange = !state.exchange;
     updateMerge();
-    const line = state.exchange ? "點一枚五元或十元，換成小錢錢" : "換錢機先休息囉";
-    showBubble(line);
-    audio.say(line);
+    narrate(fixedPlan(state.exchange ? "exchange-on" : "exchange-off"));
   });
   $("#btn-reset-free").addEventListener("click", resetFree);
   $("#btn-next").addEventListener("click", continueAfterSuccess);
@@ -1153,8 +1173,26 @@ function bind() {
   });
   $("#btn-settings").addEventListener("click", () => {
     audio.unlock();
+    renderVoiceList();
     $("#settings").classList.add("open");
     $("#settings").setAttribute("aria-hidden", "false");
+  });
+  $("#voice-pick").addEventListener("change", () => {
+    const value = $("#voice-pick").value;
+    const allowed = value === "bundled" || audio.taiwanVoices().some((voice) => voice.voiceURI === value);
+    if (!allowed) return;
+    store.data.settings.voice = value;
+    store.save();
+    audio.setVoiceChoice(value);
+    renderVoiceList();
+  });
+  $("#voice-preview").addEventListener("click", () => {
+    audio.unlock();
+    if (store.data.settings.muted || store.data.settings.volume <= 0) {
+      $("#voice-note").textContent = "先把聲音打開，再聽看看喔。";
+      return;
+    }
+    audio.preview();
   });
   $("#btn-settings-close").addEventListener("click", () => {
     $("#settings").classList.remove("open");
@@ -1207,6 +1245,9 @@ export function startGame() {
   refreshPiggies();
   showScreen("home");
   setPhase("home");
-  window.speechSynthesis?.getVoices?.();
-  window.speechSynthesis?.addEventListener?.("voiceschanged", () => audio.primeSpeech());
+  audio.primeSpeech();
+  window.speechSynthesis?.addEventListener?.("voiceschanged", () => {
+    audio.primeSpeech();
+    renderVoiceList();
+  });
 }

@@ -45,7 +45,7 @@ export const LEVELS = {
     guided: false,
     merge: false,
     blurb: "只用 1 元",
-    welcome: "歡迎來到兔兔水果攤！一個一個數，用一元付錢喔。",
+    welcome: "歡迎來到兔兔水果攤！我們一個一個數，用一塊錢付錢喔。",
   },
   2: {
     id: 2,
@@ -57,7 +57,7 @@ export const LEVELS = {
     guided: false,
     merge: true,
     blurb: "1 元和 5 元",
-    welcome: "熊熊冰淇淋車來囉！五個一元可以合成一個五元。",
+    welcome: "熊熊冰淇淋車來囉！五個一塊可以變成一個五塊喔。",
   },
   3: {
     id: 3,
@@ -69,7 +69,7 @@ export const LEVELS = {
     guided: true,
     merge: true,
     blurb: "1、5、10 元",
-    welcome: "貓頭鷹玩具店！十元放十元區，一元和五元放另一區。",
+    welcome: "貓頭鷹玩具店到囉！十塊錢放十元區，一塊和五塊放另外一邊喔。",
   },
   4: {
     id: 4,
@@ -81,7 +81,7 @@ export const LEVELS = {
     guided: true,
     merge: true,
     blurb: "兩樣也沒問題",
-    welcome: "動物大賣場！看看一共要付多少，付剛剛好喔。",
+    welcome: "動物大賣場到囉！看看一共要付多少，付剛剛好喔。",
   },
 };
 
@@ -131,27 +131,32 @@ function pricesToQuestions(prices, ids, keeper) {
   return prices.map((price, i) => bundle([[ids[i % ids.length], price]], CUSTOMERS[i % CUSTOMERS.length] === keeper ? "chick" : CUSTOMERS[i % CUSTOMERS.length]));
 }
 
+const DIGIT = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+
 export function yuanSpeak(n) {
-  n = Math.round(Number(n) || 0);
-  if (n <= 0) return "零元";
-  if (n >= 100) return "一百元";
-  const d = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
-  if (n < 10) return (n === 2 ? "兩" : d[n]) + "元";
-  if (n === 10) return "十元";
-  if (n < 20) return "十" + d[n - 10] + "元";
-  const tens = Math.floor(n / 10);
-  const ones = n % 10;
-  return d[tens] + "十" + (ones ? d[ones] : "") + "元";
+  return amountSpeak(n, "元");
 }
 
-export function questionLine(q, withWelcome) {
-  const welcome = withWelcome ? `${withWelcome}` : "";
-  if (q.items.length === 1) {
-    const it = q.items[0];
-    return `${welcome}${it.name}要${yuanSpeak(q.total)}喔`;
-  }
-  const names = q.items.map((it) => it.name).join("和");
-  return `${welcome}${names}一共要${yuanSpeak(q.total)}喔`;
+export function kuaiSpeak(n) {
+  return amountSpeak(n, "塊");
+}
+
+function amountSpeak(n, unit) {
+  n = Math.max(0, Math.min(100, Math.round(Number(n) || 0)));
+  if (n === 0) return `零${unit}`;
+  if (n === 100) return `一百${unit}`;
+  if (n < 10) return (n === 2 ? "兩" : DIGIT[n]) + unit;
+  if (n === 10) return `十${unit}`;
+  if (n < 20) return `十${DIGIT[n - 10]}${unit}`;
+  const tens = Math.floor(n / 10);
+  const ones = n % 10;
+  return `${DIGIT[tens]}十${ones ? DIGIT[ones] : ""}${unit}`;
+}
+
+export function questionLine(q) {
+  const total = kuaiSpeak(q.total);
+  if (q.items.length === 1) return `${q.items[0].name}要${total}喔`;
+  return `${q.items.map((item) => item.name).join("跟")}一共要${total}喔`;
 }
 
 export function createRng(seed) {
@@ -244,4 +249,4 @@ export function validQuestion(q) {
   return total === q.total && total >= 1 && total <= 100 && q.items.every((it) => it.price >= 1);
 }
 
-export const PRAISE = ["你好棒喔！", "哇，剛剛好！", "豬豬寶好開心！", "你真厲害！", "太棒囉！"];
+export const PRAISE = ["哇～剛剛好耶！", "你好棒喔！", "豬豬寶好開心！", "你真的好厲害！", "太棒囉！"];

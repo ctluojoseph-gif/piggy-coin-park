@@ -1,4 +1,9 @@
-/** Soft synthesized sounds plus zh-TW speech. Never throws into the game. */
+/** Coin sounds, bundled Taiwan narration, and a zh-TW-only speech fallback. */
+
+import { isTaiwanVoice, pickTaiwanVoice, rankTaiwanVoices } from "./voices.js";
+
+const PREVIEW_TEXT = "嗨，我是豬豬寶！現在有十五塊喔！";
+const MANIFEST_URL = new URL("../audio/manifest.json", import.meta.url);
 
 export const audio = {
   ctx: null,
@@ -6,6 +11,12 @@ export const audio = {
   volume: 0.85,
   muted: false,
   noise: null,
+  voiceChoice: "bundled",
+  manifest: null,
+  manifestPromise: null,
+  buffers: new Map(),
+  partToken: 0,
+  partSources: [],
 
   unlock() {
     try {
@@ -116,29 +127,141 @@ export const audio = {
 
   primeSpeech() {
     try {
-      if (!window.speechSynthesis) return;
-      window.speechSynthesis.getVoices();
+      window.speechSynthesis?.getVoices();
     } catch {
       /* speech is optional */
     }
   },
 
-  say(text, { rate = 0.96, pitch = 1.12 } = {}) {
+  setVoiceChoice(choice) {
+    this.voiceChoice = choice || "bundled";
+  },
+
+  taiwanVoices() {
     try {
-      if (!text || this.muted || this.volume <= 0 || !window.speechSynthesis) return;
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = "zh-TW";
-      utter.rate = rate;
-      utter.pitch = pitch;
-      utter.volume = Math.min(1, this.volume);
-      const voices = window.speechSynthesis.getVoices() || [];
-      const voice = voices.find((v) => v.lang && v.lang.toLowerCase().startsWith("zh-tw"))
-        || voices.find((v) => v.lang && v.lang.toLowerCase().startsWith("zh"));
-      if (voice) utter.voice = voice;
+      return rankTaiwanVoices(window.speechSynthesis?.getVoices?.() || []);
+    } catch {
+      return [];
+    }
+  },
+
+  cancelSpeak() {
+    this.partToken += 1;
+    this.partSources.forEach((source) => {
+      try { source.stop(); } catch { /* already ended */ }
+    });
+    this.partSources = [];
+    try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
+  },
+
+  speak(text, parts = []) {
+    try {
+      if (!text || this.muted || this.volume <= 0) return;
+      this.cancelSpeak();
+      if (this.voiceChoice && this.voiceChoice !== "bundled") {
+        const voice = pickTaiwanVoice(this.taiwanVoices(), this.voiceChoice);
+        if (voice && this.speakSystem(text, voice)) return;
+      }
+      this.playParts(parts);
+    } catch {
+      /* the bubble still shows the words */
+    }
+  },
+
+  preview() {
+    this.speak(PREVIEW_TEXT, ["preview"]);
+  },
+
+  speakSystem(text, voice) {
+    if (!voice || !isTaiwanVoice(voice) || !window.speechSynthesis || !window.SpeechSynthesisUtterance) return false;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "zh-TW";
+    try {
+      utter.voice = voice;
+    } catch {
+      return false;
+    }
+    if (!utter.voice || !isTaiwanVoice(utter.voice)) return false;
+    utter.rate = 0.94;
+    utter.pitch = 1.04;
+    utter.volume = Math.min(1, this.volume);
+    try {
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utter);
     } catch {
-      /* show the words on screen even if speech is missing */
+      return false;
     }
+    return true;
+  },
+
+  ensureManifest() {
+    if (!this.manifestPromise) {
+      this.manifestPromise = fetch(MANIFEST_URL)
+        .then((response) => {
+          if (!response.ok) throw new Error("manifest");
+          return response.json();
+        })
+        .then((data) => {
+          this.manifest = data;
+          return data;
+        })
+        .catch((error) => {
+          this.manifestPromise = null;
+          throw error;
+        });
+    }
+    return this.manifestPromise;
+  },
+
+  async decodeClip(url) {
+    if (this.buffers.has(url)) return this.buffers.get(url);
+    this.unlock();
+    if (!this.ctx) return null;
+    const response = await fetch(new URL(url, MANIFEST_URL));
+    if (!response.ok) return null;
+    const raw = await response.arrayBuffer();
+    const decoded = await this.ctx.decodeAudioData(raw.slice(0));
+    this.buffers.set(url, decoded);
+    return decoded;
+  },
+
+  async playParts(keys) {
+    const token = this.partToken;
+    this.unlock();
+    if (!this.ctx || !keys?.length) return;
+    let manifest;
+    try {
+      manifest = await this.ensureManifest();
+    } catch {
+      return;
+    }
+    if (token !== this.partToken || this.muted) return;
+    const buffers = [];
+    for (const key of keys) {
+      const url = manifest.clips?.[key];
+      if (!url) continue;
+      try {
+        const buffer = await this.decodeClip(url);
+        if (token !== this.partToken) return;
+        if (buffer) buffers.push(buffer);
+      } catch {
+        /* skip a missing clip instead of switching language */
+      }
+    }
+    if (!buffers.length || token !== this.partToken || !this.ctx) return;
+    let when = this.ctx.currentTime + 0.03;
+    buffers.forEach((buffer) => {
+      const source = this.ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(this.master);
+      source.start(when);
+      this.partSources.push(source);
+      when += buffer.duration + 0.04;
+    });
+  },
+
+  /** @deprecated use speak(); kept so older calls cannot select a non-Taiwan voice */
+  say(text) {
+    this.speak(text, []);
   },
 };
