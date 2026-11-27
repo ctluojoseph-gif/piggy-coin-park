@@ -2,7 +2,7 @@
 
 import { isTaiwanVoice, pickTaiwanVoice, rankTaiwanVoices } from "./voices.js";
 
-const PREVIEW_TEXT = "嗨，我是豬豬寶！現在有十五塊喔！";
+const PREVIEW_TEXT = "嗨，我是豬豬寶！現在有十五塊。";
 const MANIFEST_URL = new URL("../audio/manifest.json", import.meta.url);
 
 export const audio = {

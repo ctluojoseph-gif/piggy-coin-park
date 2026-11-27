@@ -155,8 +155,8 @@ function amountSpeak(n, unit) {
 
 export function questionLine(q) {
   const total = kuaiSpeak(q.total);
-  if (q.items.length === 1) return `${q.items[0].name}要${total}喔`;
-  return `${q.items.map((item) => item.name).join("跟")}一共要${total}喔`;
+  if (q.items.length === 1) return `${q.items[0].name}要${total}`;
+  return `${q.items.map((item) => item.name).join("跟")}一共要${total}`;
 }
 
 export function createRng(seed) {
