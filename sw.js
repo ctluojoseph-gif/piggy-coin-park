@@ -1,4 +1,4 @@
-const CACHE = "piggy-coin-park-v2";
+const CACHE = "piggy-coin-park-v3";
 const CORE = [
   "./",
   "./index.html",

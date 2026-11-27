@@ -44,7 +44,8 @@ def compress(path: Path) -> None:
             "ffmpeg", "-y", "-loglevel", "error", "-i", str(path),
             "-af",
             "silenceremove=start_periods=1:start_silence=0.02:start_threshold=-32dB,"
-            "areverse,silenceremove=start_periods=1:start_silence=0.04:start_threshold=-32dB,areverse",
+            "areverse,silenceremove=start_periods=1:start_silence=0.04:start_threshold=-32dB,"
+            "afade=t=in:st=0:d=0.09,areverse",
             "-ac", "1", "-ar", "22050", "-b:a", "32k",
             str(temporary),
         ],
